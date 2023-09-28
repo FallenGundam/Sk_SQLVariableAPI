@@ -1,0 +1,16 @@
+# save player's invetory item to sql database
+command /saveinv:
+  trigger:
+    loop 36 times:
+      set {_slot} to slot (loop-value)-1 of player's inventory
+      sqlvar_WriteToList("inventory::%uuid of player%", {_slot})
+    send "save complete!"
+
+command /loadinv:
+  trigger:
+    run section {function::sqlvar_getlist} async with arguments "inventory::%uuid of player%" and store result in {_output::*} and wait
+    set {_value::*} to sqlvar_list_parsed({_output::*},"value")
+    clear player's inventory
+    add {_value::*} to player's inventory
+    sqlvar_delete_list("inventory::%uuid of player%")
+    send "load complete!"
