@@ -1,0 +1,234 @@
+
+# SQL Variable API
+# version: v1.0.0
+# date: 2023/9/27
+# required addons: 
+#      skript 2.6 
+#			skript-reflect 
+#			skript-db
+#			item nbt api
+
+
+options:
+	ip: localhost
+	port: 3306
+	database: database
+	user: user
+	password: 123456
+	ssl: false
+
+on load:
+	set {-skript_sql} to the database "mysql://{@ip}:{@port}/{@database}?user={@user}&password={@password}&useSSL={@ssl}"
+
+	# load variable 
+	# ex: 
+	#    run section {function::sqlvar_load} async with arguments "varname" and store result in {_output} and wait
+	#    if {_output} != null:
+	#		send {_output}
+	create new section with {_varname} and store it in {function::sqlvar_load}:
+		quickly execute "CALL load_variable(%{_varname}%)" in {-skript_sql} and store the result in {_output::*}
+		if {_output::value::*} is set:
+			return sqlvar_value_parsed({_output::value::1},{_output::type::1})
+		else:
+			return null
+	
+	# load list of variable key 
+	#	ex:
+	#		in sql {test::a::1} = "abc"   {test::b::1} = "zxc"			
+	#
+	#		run section {function::sqlvar_getkeys} async with arguments "test" and store result in {_output::*} and wait
+	#		loop {_output::*}:
+	#			send loop-value
+	#
+	#       print: 
+	#			a  
+	#			b
+	#
+	create new section with {_varname} and store it in {function::sqlvar_getkeys}:
+		quickly execute "CALL load_variable_keys(%{_varname}%)" in {-skript_sql} and store the result in {_output::*}
+		if {_output::var_name::*} is set:
+			loop {_output::var_name::*}:
+				set {_temp} to loop-value.replace("%{_varname}%::","")
+				set {_r} to ""
+				loop length of {_temp} times:
+					set {_char} to character at index loop-value-2 in {_temp}
+					if {_char} = ":":
+						exit 1 loops
+					set {_r} to "%{_r}%%character at index loop-value-2 in {_temp}%"
+				if {_result::*} doesn't contain {_r}:
+					add {_r} to {_result::*}
+			return {_result::*}
+		else:
+			return null
+	
+	# load all variable from list
+	# 	Ex:
+	#		in sql {test::a} = "abc"   {test::b} = "zxc"		
+	#
+	#		run section {function::sqlvar_getlist} async with arguments "test" and store result in {_output::*} and wait
+	#       {_output::*} = a , abc , b , zxc
+	#
+	#		set {_index::*} to sqlvar_list_parsed({_output::*},"index")  = a , b
+	#		set {_value::*} to sqlvar_list_parsed({_output::*},"value")  = "abc" , "zxc"
+	#		
+	#		and you can use this to get index and value
+	#
+	#		set {_count} to 1
+	#		loop size of {_output::*}/2 times:
+	#			set {_list::%{_output::%{_count}%}%} to {_output::%{_count}+1%}
+	#			add 2 to {_count}
+	#		
+	#       {_list::a} = abc   {_list::b} = zxc
+	#				
+	create new section with {_varname} and store it in {function::sqlvar_getlist}:
+		quickly execute "CALL load_variable_list(%{_varname}%)" in {-skript_sql} and store the result in {_output::*}
+		if {_output::var_name::*} is set:
+			loop {_output::var_name::*}:
+				set {_obj} to sqlvar_value_parsed({_output::value::%loop-index%},{_output::type::%loop-index%})
+				set {_tmp} to loop-value.replace("%{_varname}%::","")
+				add {_tmp} to {_list::*}
+				add {_obj} to {_list::*}
+			return {_list::*}
+		else:
+			return null
+
+function sqlvar_list_parsed(list:objects,type:string) :: objects:
+	if {_type} = "index":
+		set {_count} to 1
+	else if {_type} = "value":
+		set {_count} to 2
+	loop size of {_list::*}/2 times:
+		add {_list::%{_count}%} to {_r::*}
+		add 2 to {_count}
+	return {_r::*}
+
+
+  
+# add data to sql database
+# ex:
+#    sqlvar_write("data::%name of player%",player's tool)
+function sqlvar_write(varname:string,value:object):
+	if {_varname} is set:
+		set {_type} to object_gettype({_value})
+		if {_value} is a player:
+			set {_strvalue} to uuid of {_value}
+		else if {_value} is an entity:
+			set {_strvalue} to uuid of {_value}
+			set {_type} to "entity"
+		else if {_type} contains "itemstack":
+			set {_strvalue} to nbt_ItemToString({_value})
+			set {_type} to "itemstack"
+		else if {_type} = "vector":
+			set {_tmp} to "%{_value}%"
+			replace all "x: " and "y: " and "z: " with "" in {_tmp}
+			set {_value} to {_tmp}.trim()
+		else:
+			set {_strvalue} to "%{_value}%"
+		quickly execute "CALL write_variable(%{_varname}%,%{_strvalue}%,%{_type}%)" in {-skript_sql}
+  
+# add data to variable list
+# ex:
+#    sqlvar_WriteToList("playerlist",player) -> {playerlist::1} = xxxplayer 
+function sqlvar_WriteToList(varname:string,value:object):
+	run section {function::sqlvar_getkeys} async with arguments {_varname} and store result in {_output::*} and wait
+	if {_output::*} isn't null:
+		set {_lastindex} to last element of {_output::*} parsed as integer
+		if {_lastindex} is set:
+			set {_newindex} to {_lastindex} + 1
+			sqlvar_write("%{_varname}%::%{_newindex}%",{_value})
+			stop
+	sqlvar_write("%{_varname}%::1",{_value})
+
+  
+# delete variable from database
+# ex: 
+#   sqlvar_delete("playerdata::%uuid of player%") -> delete {playerdata::xxx}
+function sqlvar_delete(varname:string):
+	quickly execute "CALL delete_variable(%{_varname}%)" in {-skript_sql}
+
+# delete variable list from database
+# ex:
+#    sqlvar_delete_list("playerdata") -> it will delete {playerdata::*} 
+function sqlvar_delete_list(varname:string):
+	quickly execute "CALL delete_variable_list(%{_varname}%)" in {-skript_sql}
+
+
+function sqlvar_value_parsed(obj:string,type:string) :: object:
+	if {_type} = "itemstack":
+		return nbt_StringToItem({_obj})
+	else if {_type} = "long":
+		return {_obj} parsed as integer
+	else if {_type} = "double":
+		return {_obj} parsed as number
+	else if {_type} = "craftplayer":
+		return getPlayerByUUID({_obj})
+  else if {_type} = "entity":
+		return getEntityByUUID({_obj})
+	else if {_type} = "location":
+		return StringToLocation({_obj})
+	else if {_type} = "boolean":
+		return {_obj} parsed as boolean
+	else if {_type} = "timespan":
+		return "%{_obj}%" parsed as timespan
+	else if {_type} = "date":
+		return stringtodate({_obj})
+	else if {_type} = "vector":
+		set {_v::*} to {_obj} split at ","
+		return vector({_v::1} parsed as number, {_v::2} parsed as number, {_v::3} parsed as number)
+	else:
+		return {_obj}
+
+import:
+  org.bukkit.Bukkit
+  de.tr7zw.nbtapi.NBT
+  java.util.UUID
+  
+function object_gettype(value:object) :: string:
+	return {_value}.getClass().getSimpleName().toString().toLowerCase()
+
+function getEntityByUUID(uuid:string) :: entity:
+	return Bukkit.getEntity(UUID.fromString({_uuid}))
+ 
+function getPlayerByUUID(uuid:string) :: offlineplayer:
+	return Bukkit.getOfflinePlayer(UUID.fromString({_uuid}))
+ 
+#> itemstack to string
+function nbt_ItemToString(item:item) :: string:
+	set {_nbt} to NBT.itemStackToNBT({_item})
+	return {_nbt}.toString()
+ 
+#> string to itemstack
+function nbt_StringToItem(str:string) :: item:
+	set {_nbt} to NBT.parseNBT({_str})
+	return NBT.itemStackFromNBT({_nbt})
+
+#> 文本轉換location
+#> StringToLocation
+#> @param str - string
+#> @return location
+function StringToLocation(str:string) :: location:
+	set {_v::*} to {_str} split at ", "
+	set {_xloc} to {_v::1}.replace("x: ","") parsed as number
+	set {_yloc} to {_v::2}.replace("y: ","") parsed as number
+	set {_zloc} to {_v::3}.replace("z: ","") parsed as number
+	set {_yaw} to {_v::4}.replace("yaw: ","") parsed as number
+	set {_v2::*} to {_v::5}.replace("pitch: ","") split at " in "
+	set {_pitch} to {_v2::1} parsed as number
+	set {_world} to {_v2::2}.replaceAll("\'","") parsed as world
+	return location({_xloc}, {_yloc}, {_zloc}, {_world}, {_yaw}, {_pitch})
+#> 文本轉換日期
+#> @parm text 
+#> @return date
+#> ex: stringtodate("2019/1/1 下午 12:00")
+function stringtodate(text:string) :: date:
+	set {_v::*} to {_text} split at " "
+	set {_day::*} to {_v::1} split at "/"
+	set {_year} to {_day::1} parsed as number
+	set {_month} to {_day::2} parsed as number
+	set {_day} to {_day::3} parsed as number
+	set {_clock::*} to {_v::3} split at ":"
+	set {_hour} to {_clock::1} parsed as number
+	set {_minute} to {_clock::2} parsed as number
+	if {_text} contains "下午" or "PM":
+		add 12 to {_hour}
+	return date({_year}, {_month}, {_day}, {_hour}, {_minute})
