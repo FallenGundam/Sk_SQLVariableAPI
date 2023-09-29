@@ -178,7 +178,7 @@ function sqlvar_value_parsed(obj:string,type:string) :: object:
 		return {_obj} parsed as number
 	else if {_type} = "craftplayer":
 		return getPlayerByUUID({_obj})
-  else if {_type} = "entity":
+  	else if {_type} = "entity":
 		return getEntityByUUID({_obj})
 	else if {_type} = "location":
 		return StringToLocation({_obj})
