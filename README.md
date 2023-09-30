@@ -65,12 +65,10 @@ easy to save variables to mysql database
       ```
       # in sql {test::a} = "abc"   {test::b} = "zxc"
       run section {function::sqlvar_getlist} async with arguments "test" and store result in {_output::*} and wait
-
       # {_output::*} ->  a , abc , b , zxc
-      # set {_index::*} to sqlvar_list_parsed({_output::*},"index")  ->  a , b
-      # set {_value::*} to sqlvar_list_parsed({_output::*},"value")  ->  "abc" , "zxc"
       #
-      #  also can use this to get index and value
+      #  can use this to get index and value
+      #
       #  set {_count} to 1
       #  loop size of {_output::*}/2 times:
       #      set {_list::%{_output::%{_count}%}%} to {_output::%{_count}+1%}
