@@ -43,7 +43,7 @@ on load:
 	#		send {_output}
 	create new section with {_varname} and store it in {function::sqlvar_load}:
 		quickly execute "CALL load_variable(%{_varname}%)" in {-skript_sql} and store the result in {_output::*}
-		if {_output::value::*} is set:
+		if {_output::value::1} is set:
 			return sqlvar_value_parsed({_output::value::1},{_output::type::1})
 		else:
 			return null
