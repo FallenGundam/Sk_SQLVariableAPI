@@ -235,16 +235,16 @@ function StringToLocation(str:string) :: location:
 #> 文本轉換日期
 #> @parm text 
 #> @return date
-#> ex: stringtodate("2019/1/1 下午 12:00")
+#> ex: stringtodate("2019/1/1-12:00:00")
 function stringtodate(text:string) :: date:
-	set {_v::*} to {_text} split at " "
+	set {_v::*} to {_text} split at "-"
 	set {_day::*} to {_v::1} split at "/"
 	set {_year} to {_day::1} parsed as number
 	set {_month} to {_day::2} parsed as number
 	set {_day} to {_day::3} parsed as number
-	set {_clock::*} to {_v::3} split at ":"
+	set {_clock::*} to {_v::2} split at ":"
 	set {_hour} to {_clock::1} parsed as number
 	set {_minute} to {_clock::2} parsed as number
-	if {_text} contains "下午" or "PM":
-		add 12 to {_hour}
-	return date({_year}, {_month}, {_day}, {_hour}, {_minute})
+	set {_second} to {_clock::3} parsed as number
+
+	return date({_year}, {_month}, {_day}, {_hour}, {_minute}, {_second})
