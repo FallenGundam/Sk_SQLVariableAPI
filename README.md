@@ -1,6 +1,6 @@
 # Sk_SQLVariableAPI
 easy to save variables to mysql database  
-**(warning: set date format to ``yyyy/MM/dd-HH:mm:ss`` in config.sk date variable can be parsed)**
+**(warning: set date format to ``yyyy/MM/dd-HH:mm:ss`` in config.sk date variable only then can be parsed)**
 
 
 # Version Required
