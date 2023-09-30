@@ -82,12 +82,9 @@ on load:
 	#		in sql {test::a} = "abc"   {test::b} = "zxc"		
 	#
 	#		run section {function::sqlvar_getlist} async with arguments "test" and store result in {_output::*} and wait
-	#       {_output::*} = a , abc , b , zxc
+	#       	{_output::*} = a , abc , b , zxc
 	#
-	#		set {_index::*} to sqlvar_list_parsed({_output::*},"index")  = a , b
-	#		set {_value::*} to sqlvar_list_parsed({_output::*},"value")  = "abc" , "zxc"
-	#		
-	#		and you can use this to get index and value
+	#		you can use this to get index and value
 	#
 	#		set {_count} to 1
 	#		loop size of {_output::*}/2 times:
@@ -107,17 +104,6 @@ on load:
 			return {_list::*}
 		else:
 			return null
-
-function sqlvar_list_parsed(list:objects,type:string) :: objects:
-	if {_type} = "index":
-		set {_count} to 1
-	else if {_type} = "value":
-		set {_count} to 2
-	loop size of {_list::*}/2 times:
-		add {_list::%{_count}%} to {_r::*}
-		add 2 to {_count}
-	return {_r::*}
-
 
   
 # add data to sql database
