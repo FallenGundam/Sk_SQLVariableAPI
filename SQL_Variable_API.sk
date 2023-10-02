@@ -124,6 +124,8 @@ function sqlvar_write(varname:string,value:object):
 			set {_tmp} to "%{_value}%"
 			replace all "x: " and "y: " and "z: " with "" in {_tmp}
 			set {_value} to {_tmp}.trim()
+		else if {_type} = "date":
+			set {_strvalue} to {_value} formatted as "yyyy/MM/dd-HH:mm:ss"
 		else:
 			set {_strvalue} to "%{_value}%"
 		quickly execute "CALL write_variable(%{_varname}%,%{_strvalue}%,%{_type}%)" in {-skript_sql}
