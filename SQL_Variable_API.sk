@@ -125,7 +125,7 @@ function sqlvar_write(varname:string,value:object):
 			replace all "x: " and "y: " and "z: " with "" in {_tmp}
 			set {_value} to {_tmp}.trim()
 		else if {_type} = "date":
-			set {_strvalue} to {_value} formatted as "yyyy/MM/dd-HH:mm:ss"
+			set {_strvalue} to {_value} formatted as "yyyy-MM-dd HH:mm:ss"
 		else:
 			set {_strvalue} to "%{_value}%"
 		quickly execute "CALL write_variable(%{_varname}%,%{_strvalue}%,%{_type}%)" in {-skript_sql}
@@ -175,7 +175,7 @@ function sqlvar_value_parsed(obj:string,type:string) :: object:
 	else if {_type} = "timespan":
 		return "%{_obj}%" parsed as timespan
 	else if {_type} = "date":
-		return stringtodate({_obj})
+		return StringToDate({_obj})
 	else if {_type} = "vector":
 		set {_v::*} to {_obj} split at ","
 		return vector({_v::1} parsed as number, {_v::2} parsed as number, {_v::3} parsed as number)
@@ -220,13 +220,14 @@ function StringToLocation(str:string) :: location:
 	set {_pitch} to {_v2::1} parsed as number
 	set {_world} to {_v2::2}.replaceAll("\'","") parsed as world
 	return location({_xloc}, {_yloc}, {_zloc}, {_world}, {_yaw}, {_pitch})
-#> 文本轉換日期
+
+#> 文本轉換日期 sql timestamp 可用
 #> @parm text 
 #> @return date
-#> ex: stringtodate("2019/1/1-12:00:00")
-function stringtodate(text:string) :: date:
-	set {_v::*} to {_text} split at "-"
-	set {_day::*} to {_v::1} split at "/"
+#> ex: StringToDate("2019-1-1 12:00:00")
+function StringToDate(text:string) :: date:
+	set {_v::*} to {_text} split at " "
+	set {_day::*} to {_v::1} split at "-"
 	set {_year} to {_day::1} parsed as number
 	set {_month} to {_day::2} parsed as number
 	set {_day} to {_day::3} parsed as number
@@ -234,5 +235,4 @@ function stringtodate(text:string) :: date:
 	set {_hour} to {_clock::1} parsed as number
 	set {_minute} to {_clock::2} parsed as number
 	set {_second} to {_clock::3} parsed as number
-
 	return date({_year}, {_month}, {_day}, {_hour}, {_minute}, {_second})
