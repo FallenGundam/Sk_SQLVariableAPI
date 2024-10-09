@@ -236,4 +236,3 @@ function StringToDate(text:string) :: date:
 	set {_minute} to {_clock::2} parsed as number
 	set {_second} to {_clock::3} parsed as number
 	return date({_year}, {_month}, {_day}, {_hour}, {_minute}, {_second})
-test
